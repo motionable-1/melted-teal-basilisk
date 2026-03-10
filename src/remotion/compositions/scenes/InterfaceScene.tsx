@@ -199,18 +199,40 @@ export const InterfaceScene: React.FC = () => {
             >
               <ChatGPTLogo size={18} color={COLORS.teal} delay={80} />
             </div>
-            <div
-              style={{
-                padding: "12px 18px",
-                borderRadius: "18px 18px 18px 4px",
-                background: "rgba(255,255,255,0.08)",
-                color: COLORS.white,
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
-              I can help you brainstorm ideas, draft emails, analyze data, write code, and so much more — all in a natural conversation.
-            </div>
+            {(() => {
+              const fullText = "I can help you brainstorm ideas, draft emails, analyze data, write code, and so much more — all in a natural conversation.";
+              const streamProgress = interpolate(frame, [80, 140], [0, 1], {
+                extrapolateLeft: "clamp",
+                extrapolateRight: "clamp",
+              });
+              const visibleChars = Math.floor(streamProgress * fullText.length);
+              return (
+                <div
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: "18px 18px 18px 4px",
+                    background: "rgba(255,255,255,0.08)",
+                    color: COLORS.white,
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {fullText.slice(0, visibleChars)}
+                  {visibleChars < fullText.length && visibleChars > 0 && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 2,
+                        height: 14,
+                        background: COLORS.teal,
+                        marginLeft: 2,
+                        opacity: Math.sin(frame * 0.4) > 0 ? 1 : 0.3,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -313,13 +335,13 @@ export const InterfaceScene: React.FC = () => {
         <TextAnimation
           startFrom={20}
           createTimeline={({ textRef, tl, SplitText }) => {
-            const split = new SplitText(textRef.current, { type: "chars" });
-            tl.from(split.chars, {
+            const split = new SplitText(textRef.current, { type: "words" });
+            tl.from(split.words, {
               opacity: 0,
               y: -30,
-              scale: 0.5,
-              stagger: 0.04,
-              duration: 0.5,
+              scale: 0.8,
+              stagger: 0.12,
+              duration: 0.6,
               ease: "back.out(1.7)",
             });
             return tl;

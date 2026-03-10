@@ -36,8 +36,11 @@ const FakeWindow: React.FC<FakeWindowProps> = ({ x, y, width, height, rotation, 
     config: { damping: 14, stiffness: 180 },
   });
 
-  const drift = Math.sin((frame + delay * 10) / 60) * 8;
-  const driftY = Math.cos((frame + delay * 10) / 80) * 5;
+  // Organic drift with multiple frequencies for natural feel
+  const t = frame + delay * 17;
+  const drift = Math.sin(t / 55) * 10 + Math.sin(t / 33) * 4;
+  const driftY = Math.cos(t / 70) * 8 + Math.cos(t / 40) * 3;
+  const microRotation = Math.sin(t / 90) * 1.2;
 
   const exitOpacity = interpolate(frame, [110, 140], [1, 0], {
     extrapolateLeft: "clamp",
@@ -56,7 +59,7 @@ const FakeWindow: React.FC<FakeWindowProps> = ({ x, y, width, height, rotation, 
         background: "rgba(255,255,255,0.06)",
         border: "1px solid rgba(255,255,255,0.1)",
         backdropFilter: "blur(8px)",
-        transform: `scale(${scale}) rotate(${rotation}deg) translate(${drift}px, ${driftY}px)`,
+        transform: `scale(${scale}) rotate(${rotation + microRotation}deg) translate(${drift}px, ${driftY}px)`,
         opacity: exitOpacity,
         overflow: "hidden",
       }}

@@ -154,49 +154,144 @@ const ChatDemo: React.FC<{ localFrame: number }> = ({ localFrame }) => {
 
 /* ─── Voice Demo ─── */
 const VoiceDemo: React.FC<{ localFrame: number }> = ({ localFrame }) => {
-  const barCount = 32;
+  // Circular waveform with organic noise
+  const barCount = 48;
+  const centerX = 400;
+  const centerY = 160;
+  const baseRadius = 70;
+
+  // Breathing pulse for the center circle
+  const breathe = Math.sin(localFrame * 0.08) * 8 + Math.sin(localFrame * 0.13) * 4;
+  const pulseOpacity = 0.15 + Math.sin(localFrame * 0.06) * 0.08;
+
+  // Entrance animation
+  const enterScale = interpolate(localFrame, [0, 18], [0.6, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: (t: number) => 1 - Math.pow(1 - t, 3),
+  });
+  const enterOp = interpolate(localFrame, [0, 12], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Pseudo-random noise function using seed
+  const noise = (seed: number, t: number) =>
+    Math.sin(seed * 127.1 + t * 0.15) * 0.5 +
+    Math.sin(seed * 269.5 + t * 0.23) * 0.3 +
+    Math.sin(seed * 419.3 + t * 0.09) * 0.2;
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 40,
-        padding: "30px 40px",
+        gap: 32,
+        padding: "10px 40px",
+        opacity: enterOp,
+        transform: `scale(${enterScale})`,
       }}
     >
-      {/* Waveform */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, height: 120 }}>
+      {/* Radial waveform */}
+      <div style={{ position: "relative", width: 800, height: 320 }}>
+        {/* Glow rings */}
+        {[1, 2, 3].map((ring) => (
+          <div
+            key={ring}
+            style={{
+              position: "absolute",
+              left: centerX - (baseRadius + ring * 30 + breathe),
+              top: centerY - (baseRadius + ring * 30 + breathe),
+              width: (baseRadius + ring * 30 + breathe) * 2,
+              height: (baseRadius + ring * 30 + breathe) * 2,
+              borderRadius: "50%",
+              border: `1px solid rgba(0,224,224,${0.08 / ring})`,
+            }}
+          />
+        ))}
+
+        {/* Center glow */}
+        <div
+          style={{
+            position: "absolute",
+            left: centerX - 60,
+            top: centerY - 60,
+            width: 120,
+            height: 120,
+            borderRadius: "50%",
+            background: `radial-gradient(circle, rgba(0,224,224,${pulseOpacity}) 0%, transparent 70%)`,
+            filter: "blur(20px)",
+          }}
+        />
+
+        {/* Center mic icon */}
+        <div
+          style={{
+            position: "absolute",
+            left: centerX - 24,
+            top: centerY - 24,
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: `linear-gradient(135deg, ${COLORS.teal}, ${COLORS.blue})`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 0 30px rgba(0,224,224,0.4)`,
+            transform: `scale(${1 + Math.sin(localFrame * 0.12) * 0.05})`,
+          }}
+        >
+          <Img
+            src="https://api.iconify.design/lucide/mic.svg?color=%23ffffff&width=24"
+            width={24}
+            height={24}
+          />
+        </div>
+
+        {/* Radial bars */}
         {Array.from({ length: barCount }).map((_, i) => {
-          const phase = (localFrame * 0.15 + i * 0.4) % (Math.PI * 2);
-          const h = 20 + Math.abs(Math.sin(phase)) * 80 + Math.sin(i * 0.6 + localFrame * 0.08) * 20;
+          const angle = (i / barCount) * Math.PI * 2 - Math.PI / 2;
+          const n = noise(i, localFrame);
+          const barHeight = 15 + Math.abs(n) * 55 + Math.sin(localFrame * 0.2 + i * 0.5) * 15;
+          const barOpacity = 0.4 + Math.abs(n) * 0.6;
+          const x1 = centerX + Math.cos(angle) * (baseRadius + 30 + breathe);
+          const y1 = centerY + Math.sin(angle) * (baseRadius + 30 + breathe);
+
           return (
             <div
               key={i}
               style={{
-                width: 6,
-                height: Math.max(8, h),
-                borderRadius: 3,
+                position: "absolute",
+                left: x1 - 2,
+                top: y1 - 2,
+                width: 4,
+                height: barHeight,
+                borderRadius: 2,
                 background: `linear-gradient(180deg, ${COLORS.teal}, ${COLORS.blue})`,
-                opacity: 0.6 + Math.sin(phase) * 0.4,
+                opacity: barOpacity,
+                transform: `rotate(${(angle * 180) / Math.PI + 90}deg)`,
+                transformOrigin: "top center",
               }}
             />
           );
         })}
       </div>
+
       {/* Label */}
       <div
         style={{
           fontSize: 18,
-          color: "rgba(255,255,255,0.6)",
+          color: "rgba(255,255,255,0.55)",
           fontWeight: 500,
-          opacity: interpolate(localFrame, [10, 25], [0, 1], {
+          opacity: interpolate(localFrame, [15, 30], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }),
+          letterSpacing: "0.02em",
         }}
       >
-        🎙️ Voice interaction — talk naturally, get instant answers
+        Talk naturally — get instant answers
       </div>
     </div>
   );
@@ -275,55 +370,110 @@ const CodeDemo: React.FC<{ localFrame: number }> = ({ localFrame }) => {
 
 /* ─── Summarize Demo ─── */
 const SummarizeDemo: React.FC<{ localFrame: number }> = ({ localFrame }) => {
-  const shrinkProgress = interpolate(localFrame, [20, 55], [0, 1], {
+  // Phase 1: Document visible (0-30), Phase 2: lines converge (30-60), Phase 3: bullets appear (55-110)
+  const shrinkProgress = interpolate(localFrame, [25, 55], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: (t: number) => t * t * (3 - 2 * t), // smoothstep
+  });
+
+  const docLines = [0.92, 1, 0.85, 0.96, 0.72, 0.88, 1, 0.78, 0.65, 0.9];
+
+  const bullets = [
+    { icon: "trending-up", text: "Revenue grew 23% year-over-year", color: "#4ADE80" },
+    { icon: "heart", text: "Customer satisfaction at all-time high (94%)", color: "#60A5FA" },
+    { icon: "rocket", text: "3 new product lines launching in Q2", color: "#F59E0B" },
+  ];
+
+  // Scan line effect during processing
+  const scanY = interpolate(localFrame, [28, 55], [0, 100], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const bullets = [
-    "Revenue grew 23% year-over-year",
-    "Customer satisfaction at all-time high (94%)",
-    "3 new product lines launching in Q2",
-  ];
-
   return (
-    <div style={{ padding: "20px 40px", display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Long text block */}
+    <div style={{ padding: "20px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Document with scanning effect */}
       <div
         style={{
+          position: "relative",
           padding: 24,
           borderRadius: 16,
           background: "rgba(255,255,255,0.06)",
           border: "1px solid rgba(255,255,255,0.08)",
-          transform: `scaleY(${1 - shrinkProgress * 0.7})`,
+          transform: `scaleY(${1 - shrinkProgress * 0.85}) translateY(${shrinkProgress * -20}px)`,
           opacity: 1 - shrinkProgress,
           transformOrigin: "top",
           overflow: "hidden",
         }}
       >
-        {[0.9, 1, 0.85, 0.95, 0.7, 0.88, 1, 0.75].map((w, i) => (
+        {/* Scan line */}
+        {shrinkProgress > 0 && shrinkProgress < 1 && (
           <div
-            key={i}
             style={{
-              height: 10,
-              width: `${w * 100}%`,
-              background: "rgba(255,255,255,0.1)",
-              borderRadius: 5,
-              marginBottom: 10,
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: `${scanY}%`,
+              height: 3,
+              background: `linear-gradient(90deg, transparent, ${COLORS.teal}, transparent)`,
+              boxShadow: `0 0 20px ${COLORS.teal}`,
+              zIndex: 2,
             }}
           />
-        ))}
+        )}
+        {docLines.map((w, i) => {
+          // Lines fade as scan passes
+          const lineY = (i / docLines.length) * 100;
+          const scanned = scanY > lineY;
+          return (
+            <div
+              key={i}
+              style={{
+                height: 10,
+                width: `${w * 100}%`,
+                background: scanned && shrinkProgress < 1
+                  ? `rgba(0,224,224,0.2)`
+                  : "rgba(255,255,255,0.1)",
+                borderRadius: 5,
+                marginBottom: 10,
+                transition: "background 0.1s",
+              }}
+            />
+          );
+        })}
       </div>
 
-      {/* Bullet points */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {bullets.map((text, i) => {
-          const bulletDelay = 50 + i * 12;
-          const bulletOp = interpolate(localFrame, [bulletDelay, bulletDelay + 15], [0, 1], {
+      {/* Processing indicator */}
+      {shrinkProgress > 0 && shrinkProgress < 1 && (
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: 14,
+            color: COLORS.teal,
+            fontWeight: 500,
+            opacity: Math.sin(localFrame * 0.3) > 0 ? 0.8 : 0.4,
+            letterSpacing: "0.05em",
+          }}
+        >
+          ✦ Analyzing document...
+        </div>
+      )}
+
+      {/* Bullet points with icons */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {bullets.map((item, i) => {
+          const bulletDelay = 55 + i * 14;
+          const bulletOp = interpolate(localFrame, [bulletDelay, bulletDelay + 18], [0, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           });
-          const bulletX = interpolate(localFrame, [bulletDelay, bulletDelay + 15], [-40, 0], {
+          const bulletX = interpolate(localFrame, [bulletDelay, bulletDelay + 18], [-50, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: (t: number) => 1 - Math.pow(1 - t, 3),
+          });
+          const bulletScale = interpolate(localFrame, [bulletDelay, bulletDelay + 12], [0.8, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           });
@@ -333,21 +483,36 @@ const SummarizeDemo: React.FC<{ localFrame: number }> = ({ localFrame }) => {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 14,
                 opacity: bulletOp,
-                transform: `translateX(${bulletX}px)`,
+                transform: `translateX(${bulletX}px) scale(${bulletScale})`,
+                padding: "12px 18px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
               }}
             >
               <div
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: COLORS.teal,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: `${item.color}15`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   flexShrink: 0,
                 }}
-              />
-              <span style={{ fontSize: 18, color: COLORS.white, fontWeight: 500 }}>{text}</span>
+              >
+                <Img
+                  src={`https://api.iconify.design/lucide/${item.icon}.svg?color=${encodeURIComponent(item.color)}&width=20`}
+                  width={20}
+                  height={20}
+                />
+              </div>
+              <span style={{ fontSize: 17, color: COLORS.white, fontWeight: 500, lineHeight: 1.4 }}>
+                {item.text}
+              </span>
             </div>
           );
         })}
