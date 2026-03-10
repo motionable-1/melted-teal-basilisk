@@ -1,55 +1,170 @@
-import { AbsoluteFill, Artifact, useCurrentFrame, useVideoConfig } from "remotion";
-import { loadFont } from "@remotion/google-fonts/SpaceMono";
+import React from "react";
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+  Sequence,
+  Artifact,
+  interpolate,
+} from "remotion";
+import { Audio } from "@remotion/media";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { loadFont as loadJetBrains } from "@remotion/google-fonts/JetBrainsMono";
 
-const LoaderDots = () => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+import { blurDissolve } from "../library/components/layout/transitions/presentations/blurDissolve";
+import { FloatingOrbs } from "./components/FloatingOrbs";
+import { HeroScene } from "./scenes/HeroScene";
+import { InterfaceScene } from "./scenes/InterfaceScene";
+import { FeaturesScene } from "./scenes/FeaturesScene";
+import { OutroScene } from "./scenes/OutroScene";
 
-  const dot = (index: number) => {
-    const phase = (frame / fps) * 2 * Math.PI + index * 0.8;
-    return 0.35 + Math.max(0, Math.sin(phase)) * 0.65;
-  };
+const { fontFamily } = loadInter("normal", {
+  weights: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+});
 
-  return (
-    <span className="inline-flex gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="inline-block text-sky-300"
-          style={{ opacity: dot(i) }}
-        >
-          .
-        </span>
-      ))}
-    </span>
-  );
-};
+// Load JetBrains Mono for code blocks
+loadJetBrains("normal", {
+  weights: ["400", "500", "700"],
+  subsets: ["latin"],
+});
+
+// Audio URLs
+const MUSIC_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/music/1773163327652_hcr52iqi4zf_music_Modern__clean_electr.mp3";
+const WHOOSH_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/sfx/1773163298423_pu3vdddoej_sfx_Modern_sleek_digital_UI_whoosh.mp3";
+const POP_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/sfx/1773163300743_cj2in2hj5gj_sfx_Subtle_soft_digital_pop_click_.mp3";
+const CHIME_URL =
+  "https://pub-e3bfc0083b0644b296a7080b21024c5f.r2.dev/sfx/1773163303147_jsckxrsa9k_sfx_Gentle_ambient_tech_chime__AI_.mp3";
+
+// Scene durations
+const SCENE_1 = 150; // 5s
+const TRANSITION = 18; // 0.6s
+const SCENE_2 = 168; // 5.6s
+const SCENE_3 = 450; // 15s
+const SCENE_4 = 180; // 6s
 
 export const Main: React.FC = () => {
-  const { fontFamily } = loadFont();
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+
+  // Fade out at the very end
+  const endFade = interpolate(
+    frame,
+    [durationInFrames - 30, durationInFrames],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
   return (
     <>
-      {/* Leave this here to generate a thumbnail */}
+      {/* Thumbnail */}
       {frame === 0 && (
         <Artifact content={Artifact.Thumbnail} filename="thumbnail.jpeg" />
       )}
-      <AbsoluteFill className="flex items-center justify-center bg-[#0f1115]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.28),transparent_45%),radial-gradient(circle_at_70%_60%,rgba(16,185,129,0.2),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px] opacity-40" />
-        <div
-          className="flex flex-col items-center gap-4 text-center text-white drop-shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
-          style={{ fontFamily, fontWeight: 700, letterSpacing: "0.01em" }}
-        >
-          <div className="text-4xl md:text-5xl font-bold">
-            <span className="font-extrabold text-sky-300">TypeFrames</span> is
-            building your video
-            <LoaderDots />
-          </div>
-          <div className="text-base md:text-lg text-white/70">
-            Rendering scenes, timing transitions, and polishing frames.
-          </div>
+
+      <AbsoluteFill
+        style={{
+          fontFamily,
+          backgroundColor: "#0D0D0D",
+          opacity: endFade,
+        }}
+      >
+        {/* Global floating orbs background (persists across all scenes) */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          <FloatingOrbs />
         </div>
+
+        {/* Scene transitions */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 1 }}>
+          <TransitionSeries>
+            <TransitionSeries.Sequence durationInFrames={SCENE_1}>
+              <HeroScene />
+            </TransitionSeries.Sequence>
+
+            <TransitionSeries.Transition
+              presentation={blurDissolve()}
+              timing={linearTiming({ durationInFrames: TRANSITION })}
+            />
+
+            <TransitionSeries.Sequence durationInFrames={SCENE_2}>
+              <InterfaceScene />
+            </TransitionSeries.Sequence>
+
+            <TransitionSeries.Transition
+              presentation={blurDissolve()}
+              timing={linearTiming({ durationInFrames: TRANSITION })}
+            />
+
+            <TransitionSeries.Sequence durationInFrames={SCENE_3}>
+              <FeaturesScene />
+            </TransitionSeries.Sequence>
+
+            <TransitionSeries.Transition
+              presentation={blurDissolve()}
+              timing={linearTiming({ durationInFrames: TRANSITION })}
+            />
+
+            <TransitionSeries.Sequence durationInFrames={SCENE_4}>
+              <OutroScene />
+            </TransitionSeries.Sequence>
+          </TransitionSeries>
+        </div>
+
+        {/* ─── Audio Layer ─── */}
+        {/* Background music */}
+        <Audio
+          src={MUSIC_URL}
+          volume={(f) =>
+            interpolate(f, [0, fps * 2, fps * 27, fps * 30], [0, 0.18, 0.18, 0], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            })
+          }
+        />
+
+        {/* SFX: Whoosh on first transition (~5s = frame 150) */}
+        <Sequence from={SCENE_1 - 10}>
+          <Audio src={WHOOSH_URL} volume={0.25} />
+        </Sequence>
+
+        {/* SFX: Chime on interface reveal */}
+        <Sequence from={SCENE_1 + 15}>
+          <Audio src={CHIME_URL} volume={0.2} />
+        </Sequence>
+
+        {/* SFX: Pop on toggle */}
+        <Sequence from={SCENE_1 + 45}>
+          <Audio src={POP_URL} volume={0.3} />
+        </Sequence>
+
+        {/* SFX: Whoosh on second transition */}
+        <Sequence from={SCENE_1 + SCENE_2 - TRANSITION - 10}>
+          <Audio src={WHOOSH_URL} volume={0.2} />
+        </Sequence>
+
+        {/* SFX: Pops on feature switches */}
+        {[110, 220, 330].map((offset, i) => (
+          <Sequence
+            key={i}
+            from={SCENE_1 + SCENE_2 - TRANSITION + offset - 5}
+          >
+            <Audio src={POP_URL} volume={0.2} />
+          </Sequence>
+        ))}
+
+        {/* SFX: Whoosh on final transition */}
+        <Sequence from={SCENE_1 + SCENE_2 + SCENE_3 - TRANSITION * 2 - 10}>
+          <Audio src={WHOOSH_URL} volume={0.2} />
+        </Sequence>
+
+        {/* SFX: Chime on outro logo */}
+        <Sequence from={SCENE_1 + SCENE_2 + SCENE_3 - TRANSITION * 2 + 10}>
+          <Audio src={CHIME_URL} volume={0.25} />
+        </Sequence>
       </AbsoluteFill>
     </>
   );
